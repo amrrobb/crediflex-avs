@@ -8,8 +8,6 @@
 		"start:anvil": "anvil",
 		"deploy:core": "cd contracts && forge script script/DeployEigenLayerCore.s.sol --rpc-url http://localhost:8545 --broadcast",
 		"deploy:crediflex": "cd contracts && forge script script/CrediflexDeployer.s.sol --rpc-url http://localhost:8545 --broadcast",
-		"deploy:core-main": "cd contracts && forge script script/DeployEigenLayerCore.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast",
-		"deploy:crediflex-main": "cd contracts && forge script script/CrediflexDeployer.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast",
 		"deploy:core-debug": "cd contracts && forge script script/DeployEigenLayerCore.s.sol --rpc-url http://localhost:8545 --broadcast --revert-strings debug",
 		"deploy:crediflex-debug": "cd contracts && forge script script/CrediflexDeployer.s.sol --rpc-url http://localhost:8545 --broadcast --revert-strings debug",
 		"build": "cd contracts && forge build",
