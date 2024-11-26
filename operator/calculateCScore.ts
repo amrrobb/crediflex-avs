@@ -1,95 +1,139 @@
-import Moralis from "moralis";
+interface CScoreInput {
+	transactionData: TransactionData;
+	balanceData: BalanceData;
+	chainActivityData: ChainActivityData;
+}
 
-export type WalletAges = {
-	eth: number; // age in days
-	arbitrum: number;
-	optimism: number;
+type TransactionData = any;
+type BalanceData = any;
+type ChainActivityData = any;
+
+const CHAIN_LAUNCH_DATES: { [key: string]: string } = {
+	"ethereum-mainnet": "2015-07-30",
+	"arbitrum-mainnet": "2021-08-31",
+	"optimism-mainnet": "2021-12-16",
+	"polygon-mainnet": "2020-06-09",
+	"zksync-mainnet": "2023-03-24",
+	"avalanche-mainnet": "2020-09-21",
+	"bnb-mainnet": "2020-04-23",
 };
 
-export async function calculateUserCScore(address: string): Promise<BigInt> {
-	return getWalletActiveChainsCScore(address);
+const SCORE_WEIGHTS: { [key: string]: number } = {
+	walletAge: 0.4,
+	transactionActivity: 0.4,
+	tokenDiversity: 0.1,
+	multiChainActivity: 0.1,
+};
+
+export function calculateUserCScore(input: CScoreInput): bigint {
+	const { transactionData, balanceData, chainActivityData } = input;
+
+	const walletAgeScore = calculateWalletAgeScore(transactionData);
+	const transactionActivityScore =
+		calculateTransactionActivityScore(transactionData);
+
+	const tokenDiversityScore = calculateTokenDiversityScore(balanceData);
+	const multiChainActivityScore =
+		calculateMultiChainActivityScore(chainActivityData);
+
+	const calculateCScore =
+		walletAgeScore * SCORE_WEIGHTS.walletAge +
+		transactionActivityScore * SCORE_WEIGHTS.transactionActivity +
+		tokenDiversityScore * SCORE_WEIGHTS.tokenDiversity +
+		multiChainActivityScore * SCORE_WEIGHTS.multiChainActivity;
+	const finalCScore = BigInt(calculateCScore * 1e18);
+
+	// console.log("creditScore", finalCScore);
+	// console.log("cScore displayed: ", Number(finalCScore) / 1e18);
+
+	// For testing purpose, cause lack of parameters used for calculating credit score
+	const normalizedFinalCScore = normalizedFinalScore(finalCScore);
+	// console.log("creditScore", normalizedFinalCScore);
+	// console.log("cScore displayed: ", Number(normalizedFinalCScore) / 1e18);
+	return normalizedFinalCScore;
+
+	return finalCScore;
 }
 
-async function initializeMoralis() {
-	if (!Moralis.Core.isStarted) {
-		// Check if Moralis is already started
-		await Moralis.start({ apiKey: process.env.MORALIS_API_KEY! });
-		console.log("Moralis initialized successfully");
-	}
+function normalizedFinalScore(currentCScore: bigint): bigint {
+	const minRawScore = 0; // All parameters at their minimum (0)
+	const maxRawScore =
+		(SCORE_WEIGHTS.walletAge * 10 +
+			SCORE_WEIGHTS.transactionActivity * 10 +
+			SCORE_WEIGHTS.tokenDiversity * 10 +
+			SCORE_WEIGHTS.multiChainActivity * 10) *
+		1e18; // All parameters at their maximum (10)
+
+	// Define the target range for the score
+	const minTarget = BigInt(5e18);
+	const maxTarget = BigInt(10e18);
+
+	// Normalize the adjusted final score to the target range
+	const normalizedFinalCreditScore =
+		((currentCScore - BigInt(minRawScore)) * (maxTarget - minTarget)) /
+			BigInt(maxRawScore - minRawScore) +
+		minTarget;
+
+	return normalizedFinalCreditScore;
 }
 
-async function getWalletActiveChainsCScore(address: string): Promise<BigInt> {
-	try {
-		// await Moralis.start({ apiKey: process.env.MORALIS_API_KEY! });
-		initializeMoralis();
+function calculateWalletAgeScore(transactionData: TransactionData): number {
+	const walletAgeInDays = calculateDaysBetween(
+		transactionData.items[0].earliest_transaction.block_signed_at,
+		transactionData.items[0].latest_transaction.block_signed_at
+	);
+	const chainAgeInDays = calculateChainAge(transactionData.chain_name);
 
-		const response = await Moralis.EvmApi.wallets.getWalletActiveChains({
-			chains: ["0x1", "0xa4b1", "0xa"], // ethereum, arbitrum, optimism
-			address,
-		});
-
-		const walletAges: any = {
-			eth: 0,
-			arbitrum: 0,
-			optimism: 0,
-		};
-
-		const activeChains = response.raw.active_chains;
-		activeChains.forEach((chain: any) => {
-			if (chain.first_transaction && chain.last_transaction) {
-				const firstTransactionDate = new Date(
-					chain.first_transaction.block_timestamp
-				);
-				const lastTransactionDate = new Date(
-					chain.last_transaction.block_timestamp
-				);
-				const ageInMilliseconds =
-					lastTransactionDate.getTime() - firstTransactionDate.getTime();
-				const ageInDays = Math.round(ageInMilliseconds / (1000 * 60 * 60 * 24));
-				walletAges[chain.chain] = ageInDays;
-			}
-		});
-
-		return calculateScoreFromWallet(walletAges);
-	} catch (e) {
-		console.error(e);
-		throw new Error("Failed to get wallet active chains");
-	}
+	return Math.min(10, (walletAgeInDays / chainAgeInDays) * 10);
 }
 
-// Currently, the parameter used to calculate the cScore is wallet ages.
-// In the future, additional parameters such as total transactions, dApp history, etc.,
-// will be incorporated to provide a more comprehensive cScore calculation.
-function calculateScoreFromWallet(walletAges: WalletAges): BigInt {
-	const MAX_CSCORE = BigInt(10e18); // 10 * 10^18
-	const BASE_DECIMALS = BigInt(1e18);
-
-	const weights = {
-		eth: BigInt(5e17), // 0.5 * 10^18
-		arbitrum: BigInt(3e17), // 0.3 * 10^18
-		optimism: BigInt(2e17), // 0.2 * 10^18
-	};
-
-	const normalizeAge = (age: number): bigint => {
-		return (BigInt(age) * BASE_DECIMALS) / BigInt(365);
-	};
-
-	const normalizedETH = normalizeAge(walletAges.eth);
-	const normalizedARB = normalizeAge(walletAges.arbitrum);
-	const normalizedOPT = normalizeAge(walletAges.optimism);
-
-	// console.log(normalizedETH, normalizedARB, normalizedOPT);
-
-	let cScore =
-		(normalizedETH * weights.eth) / BASE_DECIMALS +
-		(normalizedARB * weights.arbitrum) / BASE_DECIMALS +
-		(normalizedOPT * weights.optimism) / BASE_DECIMALS;
-
-	// Adjusting cScore to account for missing parameters in the calculation.
-	// This is a temporary measure until additional parameters are incorporated.
-	cScore += BigInt(4 * 1e18);
-
-	console.log("cScore Displayed: ", cScore / BASE_DECIMALS);
-
-	return cScore > MAX_CSCORE ? MAX_CSCORE : cScore;
+function calculateDaysBetween(startDate: string, endDate: string): number {
+	return (
+		(new Date(endDate).getTime() - new Date(startDate).getTime()) /
+		(1000 * 60 * 60 * 24)
+	);
 }
+
+function calculateChainAge(chainName: string): number {
+	return calculateDaysBetween(
+		CHAIN_LAUNCH_DATES[chainName],
+		new Date().toISOString()
+	);
+}
+
+function calculateTransactionActivityScore(
+	transactionData: TransactionData
+): number {
+	const totalTransactions = transactionData.items[0].total_count;
+	return Math.min(10, Math.log10(totalTransactions) * 2);
+}
+
+function calculateTokenDiversityScore(balanceData: BalanceData): number {
+	const balanceItems: any[] = balanceData.items;
+	const uniqueTokens = new Set(
+		balanceItems
+			.filter((token) => token.quote_24h > 1)
+			.map((token) => token.contract_name)
+	).size;
+	return Math.min(10, (uniqueTokens / 50) * 10);
+}
+
+function calculateMultiChainActivityScore(
+	chainActivityData: ChainActivityData
+): number {
+	const chainActivityItems: any[] = chainActivityData.items;
+	return Math.min(10, (chainActivityItems.length / 10) * 10);
+}
+
+// // Testing purpose
+// import {
+// 	balanceData,
+// 	transactionData,
+// 	chainActivityData,
+// } from "./example-input";
+
+// calculateUserCScore({
+// 	balanceData,
+// 	transactionData,
+// 	chainActivityData,
+// });

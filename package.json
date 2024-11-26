@@ -17,10 +17,11 @@
 	},
 	"dependencies": {
 		"@moralisweb3/common-evm-utils": "^2.27.2",
+		"@reclaimprotocol/js-sdk": "^2.1.1",
+		"@reclaimprotocol/zk-fetch": "^0.2.1",
 		"dotenv": "^10.0.0",
 		"ethers": "^6.13.2",
-		"express": "^4.21.1",
-		"moralis": "^2.27.2"
+		"express": "^4.21.1"
 	},
 	"devDependencies": {
 		"@types/express": "^5.0.0",

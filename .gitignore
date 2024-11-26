@@ -30,5 +30,5 @@ target/
 debug/
 
 yarn.lock
-contracts/deployments/
+# contracts/deployments/
 .vercel

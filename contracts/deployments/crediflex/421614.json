@@ -1,0 +1,12 @@
+{
+	"lastUpdate": { "timestamp": "1732344211", "block_number": "99766001" },
+	"addresses": {
+		"proxyAdmin": "0x5f673ae9eba6baa38ebc0cd66c8e6e170c6bac0f",
+		"crediflexServiceManager": "0xc4327ad867e6e9a938e03815ccdd4198cce1023c",
+		"crediflexServiceManagerImpl": "0x125fc81f5db4a4364e21d03ed85881dde6aaf9f7",
+		"stakeRegistry": "0x7f87ef0e2f24450028d0405bebda921a94d60481",
+		"stakeRegistryImpl": "0xb87e3a40b0b6730b29e152f25f8153e4aa104181",
+		"strategy": "0x8949543af3e0260c615640b51d3ea7c23733fc1b",
+		"token": "0xc7f2cf4845c6db0e1a1e91ed41bcd0fcc1b0e141"
+	}
+}

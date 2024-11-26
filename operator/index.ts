@@ -1,6 +1,7 @@
 import { ethers } from "ethers";
 import * as dotenv from "dotenv";
 import { calculateUserCScore } from "./calculateCScore";
+import { fetchAndVerifyProof } from "./reclaimZkFetch";
 const fs = require("fs");
 const path = require("path");
 dotenv.config();
@@ -33,7 +34,7 @@ const coreDeploymentData = JSON.parse(
 	)
 );
 
-const delegationManagerAddress = coreDeploymentData.addresses.delegation; // todo: reminder to fix the naming of this contract in the deployment file, change to delegationManager
+const delegationManagerAddress = coreDeploymentData.addresses.delegation;
 const avsDirectoryAddress = coreDeploymentData.addresses.avsDirectory;
 const crediflexServiceManagerAddress =
 	avsDeploymentData.addresses.crediflexServiceManager;
@@ -89,6 +90,41 @@ const signAndRespondToTask = async (
 	task: [string, bigint, bigint]
 ) => {
 	console.log(`Processing Task #${taskIndex}...`);
+	const walletAddress = task[0];
+	const verifiedProofTransactionSummary = await fetchAndVerifyProof(
+		walletAddress,
+		"transactions_summary"
+	);
+
+	const verifiedProofBalances = await fetchAndVerifyProof(
+		walletAddress,
+		"balances"
+	);
+
+	const verifiedProofChainActivity = await fetchAndVerifyProof(
+		walletAddress,
+		"chain_activity"
+	);
+
+	if (
+		!verifiedProofBalances ||
+		!verifiedProofTransactionSummary ||
+		!verifiedProofChainActivity
+	) {
+		console.log(
+			"No verified proofs found for chain activity, balances and transaction summary."
+		);
+		return;
+	}
+
+	const finalCScore = calculateUserCScore({
+		transactionData: verifiedProofTransactionSummary.data,
+		balanceData: verifiedProofBalances.data,
+		chainActivityData: verifiedProofChainActivity.data,
+	});
+
+	console.log(`CScore for task #${task[0]}:`, finalCScore.toString());
+
 	const messageHash = ethers.solidityPackedKeccak256(
 		["string"],
 		[`Respond task with index ${task[0]}`]
@@ -108,7 +144,6 @@ const signAndRespondToTask = async (
 			ethers.toBigInt((await provider.getBlockNumber()) - 1),
 		]
 	);
-	const cScore = await calculateUserCScore(task[0]);
 
 	const params = {
 		user: task[0],
@@ -117,7 +152,7 @@ const signAndRespondToTask = async (
 
 	const tx = await crediflexServiceManager.respondToTask(
 		params,
-		cScore,
+		finalCScore,
 		taskIndex,
 		signedTask
 	);
@@ -126,7 +161,7 @@ const signAndRespondToTask = async (
 };
 
 const registerOperator = async () => {
-	// Registers as an Operator in EigenLayer.
+	console.log("Registering as an Operator in EigenLayer...");
 	try {
 		const tx1 = await delegationManager.registerAsOperator(
 			{
@@ -143,16 +178,13 @@ const registerOperator = async () => {
 	}
 
 	const salt = ethers.hexlify(ethers.randomBytes(32));
-	const expiry = Math.floor(Date.now() / 1000) + 3600; // Example expiry, 1 hour from now
-
-	// Define the output structure
+	const expiry = Math.floor(Date.now() / 1000) + 3600;
 	let operatorSignatureWithSaltAndExpiry = {
 		signature: "",
 		salt: salt,
 		expiry: expiry,
 	};
 
-	// Calculate the digest hash, which is a unique value representing the operator, avs, unique value (salt) and expiration date.
 	const operatorDigestHash =
 		await avsDirectory.calculateOperatorAVSRegistrationDigestHash(
 			wallet.address,
@@ -173,9 +205,6 @@ const registerOperator = async () => {
 	).serialized;
 
 	console.log("Registering Operator to AVS Registry contract");
-
-	// Register Operator to AVS
-	// Per release here: https://github.com/Layr-Labs/eigenlayer-middleware/blob/v0.2.1-mainnet-rewards/src/unaudited/ECDSAStakeRegistry.sol#L49
 	const tx2 = await ecdsaRegistryContract.registerOperatorWithSignature(
 		operatorSignatureWithSaltAndExpiry,
 		wallet.address
@@ -207,3 +236,9 @@ const main = async () => {
 main().catch((error) => {
 	console.error("Error in main function:", error);
 });
+
+// signAndRespondToTask(1, [
+// 	"0x8757F328371E571308C1271BD82B91882253FDd1",
+// 	BigInt(1234567890),
+// 	BigInt(9876543210),
+// ]);
