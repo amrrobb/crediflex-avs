@@ -81,16 +81,16 @@ contract CrediflexServiceManager is ECDSAServiceManagerBase, ICrediflexServiceMa
         bytes32 messageHash = keccak256(abi.encodePacked("Respond task with user ", task.user));
         bytes32 ethSignedMessageHash = messageHash.toEthSignedMessageHash();
         bytes4 magicValue = IERC1271Upgradeable.isValidSignature.selector;
-        // if (
-        //     !(
-        //         magicValue
-        //             == ECDSAStakeRegistry(stakeRegistry).isValidSignature(
-        //                 ethSignedMessageHash, signature
-        //             )
-        //     )
-        // ) {
-        //     revert();
-        // }
+        if (
+            !(
+                magicValue
+                    == ECDSAStakeRegistry(stakeRegistry).isValidSignature(
+                        ethSignedMessageHash, signature
+                    )
+            )
+        ) {
+            revert();
+        }
 
         // updating the storage with task responses
         allTaskResponses[msg.sender][referenceTaskIndex] = signature;

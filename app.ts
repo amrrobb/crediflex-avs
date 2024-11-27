@@ -10,7 +10,7 @@ const PORT: number = 3000;
 app.use(express.json()); // Middleware to parse JSON payloads
 
 app.get("/", (_, res) => {
-	res.send("Welcome to Crediflex Backend!");
+	res.send("Welcome to Crediflex AVS!");
 });
 
 app.get("/process", async (_, res) => {
