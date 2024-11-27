@@ -87,7 +87,7 @@ const avsDirectory = new ethers.Contract(
 
 const signAndRespondToTask = async (
 	taskIndex: number,
-	task: [string, bigint, bigint]
+	task: [string, bigint]
 ) => {
 	console.log(`Processing Task #${taskIndex}...`);
 	const walletAddress = task[0];
@@ -95,16 +95,22 @@ const signAndRespondToTask = async (
 		walletAddress,
 		"transactions_summary"
 	);
+	console.log(
+		"Verified Proof Transaction Summary:",
+		verifiedProofTransactionSummary
+	);
 
 	const verifiedProofBalances = await fetchAndVerifyProof(
 		walletAddress,
 		"balances"
 	);
+	console.log("Verified Proof Balances:", verifiedProofBalances);
 
 	const verifiedProofChainActivity = await fetchAndVerifyProof(
 		walletAddress,
 		"chain_activity"
 	);
+	console.log("Verified Proof Chain Activity:", verifiedProofChainActivity);
 
 	if (
 		!verifiedProofBalances ||
@@ -226,16 +232,47 @@ export const monitorNewTasks = async () => {
 	);
 };
 
-const main = async () => {
-	// await registerOperator();
-	monitorNewTasks().catch((error) => {
-		console.error("Error monitoring tasks:", error);
-	});
+export const processNewTasksByLastEvent = async () => {
+	console.log("Checking for the latest NewTaskCreated event...");
+
+	try {
+		const latestBlock = await provider.getBlockNumber();
+		const filter = crediflexServiceManager.filters.NewTaskCreated();
+		const logs = await crediflexServiceManager.queryFilter(
+			filter,
+			latestBlock - 1000,
+			latestBlock
+		);
+
+		if (logs.length === 0) {
+			console.log("No new tasks found.");
+			return;
+		}
+
+		const latestEvent = logs[logs.length - 1];
+		const args = (latestEvent as any).args;
+
+		if (args && args[0] !== undefined) {
+			console.log(`Processing NewTaskCreated event: Task #${args[0]}`);
+			await signAndRespondToTask(args[0], args[1]);
+		} else {
+			console.error("Event args are missing or malformed.");
+		}
+	} catch (error) {
+		console.error("Error fetching or processing events:", error);
+	}
 };
 
-main().catch((error) => {
-	console.error("Error in main function:", error);
-});
+// const main = async () => {
+// 	// await registerOperator();
+// 	monitorNewTasks().catch((error) => {
+// 		console.error("Error monitoring tasks:", error);
+// 	});
+// };
+
+// main().catch((error) => {
+// 	console.error("Error in main function:", error);
+// });
 
 // signAndRespondToTask(1, [
 // 	"0x8757F328371E571308C1271BD82B91882253FDd1",

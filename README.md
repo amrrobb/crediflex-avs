@@ -4,6 +4,11 @@
 
 The Crediflex Actively Validated Service (AVS) contract is an extension designed to facilitate the request and retrieval of credit scores. It operates in conjunction with the Crediflex main contract to provide a seamless and efficient mechanism for credit score evaluation.
 
+## Deployed Contracts
+
+- **AVS Contract**: [0xc4327AD867E6e9a938e03815Ccdd4198ccE1023c](https://sepolia.arbiscan.io/address/0xc4327AD867E6e9a938e03815Ccdd4198ccE1023c)
+- **Main Contract**: [0x0EC0b333d125278BF90f4Aa7442B61B63363F956](https://sepolia.arbiscan.io/address/0x0EC0b333d125278BF90f4Aa7442B61B63363F956)
+
 ### Key Features
 
 - **Credit Score Requests**: Users can request a credit score through the AVS contract. This score is utilized by the Crediflex main contract to calculate the Loan-to-Value (LTV) ratio for loan borrowing.

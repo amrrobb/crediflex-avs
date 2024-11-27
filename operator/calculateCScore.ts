@@ -52,7 +52,7 @@ export function calculateUserCScore(input: CScoreInput): bigint {
 	// console.log("cScore displayed: ", Number(normalizedFinalCScore) / 1e18);
 	return normalizedFinalCScore;
 
-	return finalCScore;
+	// return finalCScore;
 }
 
 function normalizedFinalScore(currentCScore: bigint): bigint {
@@ -78,6 +78,11 @@ function normalizedFinalScore(currentCScore: bigint): bigint {
 }
 
 function calculateWalletAgeScore(transactionData: TransactionData): number {
+	if (!transactionData.items || transactionData.items.length === 0) {
+		console.error("Transaction data items are null or empty.");
+		return 0;
+	}
+
 	const walletAgeInDays = calculateDaysBetween(
 		transactionData.items[0].earliest_transaction.block_signed_at,
 		transactionData.items[0].latest_transaction.block_signed_at
@@ -104,11 +109,21 @@ function calculateChainAge(chainName: string): number {
 function calculateTransactionActivityScore(
 	transactionData: TransactionData
 ): number {
+	if (!transactionData.items || transactionData.items.length === 0) {
+		console.error("Transaction data items are null or empty.");
+		return 0;
+	}
+
 	const totalTransactions = transactionData.items[0].total_count;
 	return Math.min(10, Math.log10(totalTransactions) * 2);
 }
 
 function calculateTokenDiversityScore(balanceData: BalanceData): number {
+	if (!balanceData.items || balanceData.items.length === 0) {
+		console.error("Balance data items are null or empty.");
+		return 0;
+	}
+
 	const balanceItems: any[] = balanceData.items;
 	const uniqueTokens = new Set(
 		balanceItems
@@ -121,6 +136,11 @@ function calculateTokenDiversityScore(balanceData: BalanceData): number {
 function calculateMultiChainActivityScore(
 	chainActivityData: ChainActivityData
 ): number {
+	if (!chainActivityData.items || chainActivityData.items.length === 0) {
+		console.error("Chain activity data items are null or empty.");
+		return 0;
+	}
+
 	const chainActivityItems: any[] = chainActivityData.items;
 	return Math.min(10, (chainActivityItems.length / 10) * 10);
 }

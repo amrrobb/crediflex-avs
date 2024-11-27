@@ -13,10 +13,10 @@
 		"build": "cd contracts && forge build",
 		"clean": "cd contracts && forge clean",
 		"extract:abis": "node utils/abis.js",
-		"test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" npx jest"
+		"test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" npx jest",
+		"start": "ts-node app.ts"
 	},
 	"dependencies": {
-		"@moralisweb3/common-evm-utils": "^2.27.2",
 		"@reclaimprotocol/js-sdk": "^2.1.1",
 		"@reclaimprotocol/zk-fetch": "^0.2.1",
 		"dotenv": "^10.0.0",

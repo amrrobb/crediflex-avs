@@ -1,5 +1,4 @@
-import { monitorNewTasks } from "./operator";
-import Moralis from "moralis";
+import { processNewTasksByLastEvent } from "./operator";
 import * as dotenv from "dotenv";
 import express from "express";
 
@@ -10,8 +9,17 @@ const PORT: number = 3000;
 
 app.use(express.json()); // Middleware to parse JSON payloads
 
+app.get("/", (_, res) => {
+	res.send("Welcome to Crediflex Backend!");
+});
+
+app.get("/process", async (_, res) => {
+	await processNewTasksByLastEvent();
+	res.send("Data processed successfully");
+});
+
 // Start the server and monitor tasks on server startup
 app.listen(PORT, async () => {
 	console.log(`Server is running on http://localhost:${PORT}`);
-	monitorNewTasks(); // Start monitoring when the server starts
+	// monitorNewTasks(); // Start monitoring when the server starts
 });
