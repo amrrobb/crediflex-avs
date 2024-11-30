@@ -40,6 +40,7 @@ export async function fetchAndVerifyProof(
 			console.error("Proof is invalid");
 			return null;
 		}
+		console.log("Proof received");
 
 		const proofData = await Reclaim.transformForOnchain(proof);
 		return parseClaimInfoContext(proofData.claimInfo.context, endpointType);

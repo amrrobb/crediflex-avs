@@ -13,9 +13,14 @@ app.get("/", (_, res) => {
 	res.send("Welcome to Crediflex AVS!");
 });
 
-app.get("/process", async (_, res) => {
-	await processNewTasksByLastEvent();
-	res.send("Data processed successfully");
+app.get("/process", async (req, res) => {
+	try {
+		const response = await processNewTasksByLastEvent(); // Simulate an async operation
+		res.json(response);
+	} catch (error) {
+		console.error("Error processing request:", error);
+		res.status(500).send("Server error");
+	}
 });
 
 // Start the server and monitor tasks on server startup

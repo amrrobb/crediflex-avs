@@ -91,35 +91,22 @@ const signAndRespondToTask = async (
 ) => {
 	console.log(`Processing Task #${taskIndex}...`);
 	const walletAddress = task[0];
-	const verifiedProofTransactionSummary = await fetchAndVerifyProof(
-		walletAddress,
-		"transactions_summary"
-	);
-	console.log(
-		"Verified Proof Transaction Summary:",
-		verifiedProofTransactionSummary
-	);
-
-	const verifiedProofBalances = await fetchAndVerifyProof(
-		walletAddress,
-		"balances"
-	);
-	console.log("Verified Proof Balances:", verifiedProofBalances);
-
-	const verifiedProofChainActivity = await fetchAndVerifyProof(
-		walletAddress,
-		"chain_activity"
-	);
-	console.log("Verified Proof Chain Activity:", verifiedProofChainActivity);
+	const [
+		verifiedProofTransactionSummary,
+		verifiedProofBalances,
+		verifiedProofChainActivity,
+	] = await Promise.all([
+		fetchAndVerifyProof(walletAddress, "transactions_summary"),
+		fetchAndVerifyProof(walletAddress, "balances"),
+		fetchAndVerifyProof(walletAddress, "chain_activity"),
+	]);
 
 	if (
-		!verifiedProofBalances ||
 		!verifiedProofTransactionSummary ||
+		!verifiedProofBalances ||
 		!verifiedProofChainActivity
 	) {
-		console.log(
-			"No verified proofs found for chain activity, balances and transaction summary."
-		);
+		console.error("Verification failed for one or more proofs.");
 		return;
 	}
 
@@ -150,14 +137,8 @@ const signAndRespondToTask = async (
 			ethers.toBigInt((await provider.getBlockNumber()) - 1),
 		]
 	);
-
-	const params = {
-		user: task[0],
-		taskCreatedBlock: task[1],
-	};
-
 	const tx = await crediflexServiceManager.respondToTask(
-		params,
+		{ user: task[0], taskCreatedBlock: task[1] },
 		finalCScore,
 		taskIndex,
 		signedTask
